@@ -109,5 +109,34 @@ public class RemoteWhiteBoardMongoDB {
             return null;
         }
     }
+
+    public boolean processUsername(String username, String inputPassword){
+        try {
+            MongoCollection<Document> collection = getCollection("UsernamePassword");
+            Document filter = new Document("document_name", "UsernameAndPassword");
+            Document userInfoDoc = collection.find(filter).first();
+            JSONObject userInfoJson = new JSONObject(userInfoDoc.toJson());
+            if (userInfoJson.has(username)){
+                String password = userInfoJson.getString(username);
+                Boolean verificationResult =  this.verifyPassword(password, inputPassword);
+                return verificationResult;
+            } else{
+                Document update = new Document("$set", new Document(username, inputPassword));
+                collection.updateOne(filter, update);
+            }
+           return true;
+        } catch (Exception e) {
+            throw new RuntimeException("UTF-8 encoding is not supported", e);
+
+        }
+    }
+
+    public boolean verifyPassword(String password, String inputPassword){
+        if (password.equals(inputPassword)){
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 

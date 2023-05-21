@@ -19,14 +19,13 @@ public class RemoteWhiteBoardThread extends Thread {
     private DataOutputStream out;
     private Socket socket;
     private ArrayList<RemoteWhiteBoardThread> threads;
-    private UUID uuid;
+    private String username;
 
 
-    public RemoteWhiteBoardThread(Socket socket, RemoteWhiteBoardMongoDB remoteWhiteBoardMongoDB, String collectionName, Canvas canvas, UUID uuid, ArrayList<RemoteWhiteBoardThread> threads) throws IOException {
+    public RemoteWhiteBoardThread(Socket socket, RemoteWhiteBoardMongoDB remoteWhiteBoardMongoDB, String collectionName, Canvas canvas, ArrayList<RemoteWhiteBoardThread> threads) throws IOException {
         super();
         this.setSocket(socket);
         this.canvas = canvas;
-        this.uuid = uuid;
         this.threads = threads;
         this.in = new DataInputStream(this.socket.getInputStream());
         this.out = new DataOutputStream(this.socket.getOutputStream());
@@ -73,40 +72,71 @@ public class RemoteWhiteBoardThread extends Thread {
             if (bigJsonObject.has("data")) {
                 JSONArray RecordStringList = bigJsonObject.getJSONArray("data");
 
-                for (int i = 0; i < RecordStringList.length(); i++) {
-                    String jsonString = RecordStringList.getString(i);
-                    JSONObject jsonObject = new JSONObject(jsonString);
 
-
-                    if (jsonObject.has("action")) {
-                        switch (jsonObject.getString("action")) {
-                            case "add":
-                                if (jsonObject.getString("type").equals("comment")) {
-
-
-                                } else if (jsonObject.getString("type").equals("shape")) {
-                                    System.out.println("Adding shape");
-
-                                    this.eventAddShape(jsonString);
-                                    for (RemoteWhiteBoardThread thread : threads) {
-                                        if (thread != this) {
-                                            System.out.println("Sending to " + thread.getSocket().getInetAddress());
-                                            thread.getOut().writeUTF(jsonString);
-                                        }
-                                    }
-                                } else if (jsonObject.getString("type").equals("chat")) {
-
-                                } else {
-
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    } else {
-
+                for (RemoteWhiteBoardThread thread : threads) {
+                    if (thread != this) {
+                        System.out.println("Sending to " + thread.getSocket().getInetAddress());
+                        thread.getOut().writeUTF(bigJsonString);
                     }
                 }
+
+
+            } else{
+                if (bigJsonObject.has("type")) {
+                    String type = bigJsonObject.getString("type");
+                    if (type.equals("text")){
+                        for (RemoteWhiteBoardThread thread : threads) {
+                            if (thread != this) {
+                                System.out.println("Sending to " + thread.getSocket().getInetAddress());
+                                thread.getOut().writeUTF(bigJsonString);
+                            }
+                        }
+                    } else if (type.equals("chat")){
+                        for (RemoteWhiteBoardThread thread : threads) {
+                            if (thread != this) {
+                                System.out.println("Sending to " + thread.getSocket().getInetAddress());
+                                thread.getOut().writeUTF(bigJsonString);
+                            }
+                        }
+                    } else if (type.equals("UsernamePassword")){
+                        String username = bigJsonObject.getString("username");
+                        String password = bigJsonObject.getString("password");
+                        Boolean result =  this.remoteWhiteBoardMongoDB.processUsername(username, password);
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("status", result);
+                        this.out.writeUTF(jsonObject.toString());
+                        if (result){
+                            this.canvas.addClient(username);
+                            this.username = username;
+                            for (RemoteWhiteBoardThread thread : threads) {
+                                if (thread != this) {
+                                    System.out.println("Sending to " + thread.getSocket().getInetAddress());
+                                    JSONObject jsonObjectToManager = new JSONObject();
+                                    jsonObjectToManager.put("type", "addClient");
+                                    jsonObjectToManager.put("action", "add");
+                                    jsonObjectToManager.put("username", username);
+                                    thread.getOut().writeUTF(jsonObjectToManager.toString());
+                                }
+                            }
+                        }
+
+
+                    } else if (type.equals("kickout")){
+                        String username = bigJsonObject.getString("username");
+                        for (RemoteWhiteBoardThread thread : threads) {
+                            if (thread.username.equals(username)) {
+                                System.out.println("Sending to " + thread.getSocket().getInetAddress());
+                                this.canvas.removeClient(username);
+                                thread.getOut().writeUTF(bigJsonString);
+                                this.socket.close();
+                                this.threads.remove(this);
+                            }
+                        }
+
+                    }
+
+                }
+
             }
             } catch(JSONException e){
                 e.printStackTrace();

@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -21,15 +22,20 @@ public class RemoteWhiteBoard{
 
     private JFrame frame;
     private WhiteBoardPanel whiteBoardPanel;
+    private JTextPane chatHistoryPane;
+    private String username;
+    private boolean manager;
 
-    public RemoteWhiteBoard(Socket socket, DataInputStream in, DataOutputStream out) throws RemoteException {
+    public RemoteWhiteBoard(Socket socket, DataInputStream in, DataOutputStream out, String username, boolean manager) throws RemoteException {
 
         this.socket = socket;
         this.in = in;
         this.out = out;
+        this.username = username;
+        this.manager = manager;
 
         this.frame = new JFrame("Whiteboard");
-        whiteBoardPanel = new WhiteBoardPanel(this.in, this.out);
+        whiteBoardPanel = new WhiteBoardPanel(this.socket, this.in, this.out, this, false);
         this.frame.add(whiteBoardPanel);
         Button clearButton = new Button("Clear");
         Button redButton = new Button("Red");
@@ -62,6 +68,30 @@ public class RemoteWhiteBoard{
         fillShapePanel.add(fillSquareButton);
         fillShapePanel.add(fillStarButton);
         this.frame.add(fillShapePanel, BorderLayout.NORTH);
+
+        Button addTextButton = new Button("Add Text");
+        Button addShapeButton = new Button("Add Shape");
+        String[] fontList = {"Arial", "Times New Roman", "Courier New", "Comic Sans MS", "Impact"};
+        JList fontJList = new JList(fontList);
+        fontJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane fontJScrollPane = new JScrollPane(fontJList);
+        Panel TextPanel = new Panel();
+        TextPanel.add(addTextButton);
+        TextPanel.add(fontJScrollPane);
+        TextPanel.add(addShapeButton);
+        this.frame.add(TextPanel, BorderLayout.EAST);
+
+        TextField chatField = new TextField(20);
+        chatHistoryPane = new JTextPane();
+        chatHistoryPane.setEditable(false);
+        JScrollPane chatHistoryField = new JScrollPane(chatHistoryPane);
+        chatHistoryField.setPreferredSize(new Dimension(200, 200));
+        Button sendButton = new Button("Send");
+        Panel chatPanel = new Panel();
+        chatPanel.add(chatField);
+        chatPanel.add(sendButton);
+        chatPanel.add(chatHistoryField);
+        this.frame.add(chatPanel, BorderLayout.NORTH);
 
 
 
@@ -159,6 +189,53 @@ public class RemoteWhiteBoard{
                 ex.printStackTrace();
             }
         });
+
+        addTextButton.addActionListener(e -> {
+            try {
+                whiteBoardPanel.setShape("Text");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        fontJList.addListSelectionListener(e -> {
+            try {
+                whiteBoardPanel.setFontType(fontList[fontJList.getSelectedIndex()]);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        addShapeButton.addActionListener(e -> {
+            try {
+                whiteBoardPanel.setShapeOrText(true);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        addTextButton.addActionListener(e -> {
+            try {
+                whiteBoardPanel.setShapeOrText(false);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        sendButton.addActionListener(e -> {
+            try {
+                String message = chatField.getText();
+                message = this.username + ": " + message;
+                Document doc = this.getChatHistoryPane().getDocument();
+                doc.insertString(doc.getLength(), message + "\n", null);
+                chatField.setText("");
+                whiteBoardPanel.sendChatMessage(message);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+
     }
 
 
@@ -191,7 +268,24 @@ public class RemoteWhiteBoard{
         this.frame.setVisible(true);
     }
 
+    public JTextPane getChatHistoryPane() {
+        return chatHistoryPane;
+    }
 
 
+    public Socket getSocket() {
+        return socket;
+    }
 
+    public DataInputStream getIn() {
+        return in;
+    }
+
+    public DataOutputStream getOut() {
+        return out;
+    }
+
+    public JFrame getFrame() {
+        return frame;
+    }
 }

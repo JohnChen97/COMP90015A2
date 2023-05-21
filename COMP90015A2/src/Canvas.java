@@ -2,6 +2,7 @@ import org.json.JSONObject;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class Canvas {
     private JSONObject canvasJSONObject;
@@ -14,6 +15,7 @@ public class Canvas {
     public void putShapeRecord(ShapeRecord shapeRecord){
         this.canvasJSONObject.put("shapeRecord", shapeRecord);
     }
+    public ArrayList<String> clientList = new ArrayList<String>();
     public void createNewCanvas(String canvasName){
         try{
             FileWriter file = new FileWriter(canvasName + ".json");
@@ -40,5 +42,17 @@ public class Canvas {
 
     public void setCanvasName(String canvasName) {
         this.canvasName = canvasName;
+    }
+
+    public void addClient(String clientName){
+        this.clientList.add(clientName);
+    }
+
+    public void removeClient(String clientName){
+        this.clientList.remove(clientName);
+    }
+
+    public ArrayList<String> getClientList(){
+        return this.clientList;
     }
 }

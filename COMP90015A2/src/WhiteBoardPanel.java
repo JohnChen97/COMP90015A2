@@ -1,24 +1,25 @@
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.text.Document;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionAdapter;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 import java.rmi.RemoteException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 public class WhiteBoardPanel extends JPanel{
-
+    private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
+    private RemoteWhiteBoard remoteWhiteBoard;
 
     private Graphics2D graphics2D;
     private Image image;;
@@ -28,15 +29,25 @@ public class WhiteBoardPanel extends JPanel{
     private String shape = "Oval";
 
     private Color currentColor = Color.BLACK;
+    private int fontSize = 30;
+    private String fontType = "Arial";
+
+    private boolean ShapeOrText = true; // true = shape, false = text
 
     private ArrayList<String> tempMouseMotionList= new ArrayList<String>();
+    TextRecord currentTextRecord = new TextRecord( 0, 0, 12, "Arial", "");
+
+    private boolean manager = false;
 
 // https://www.youtube.com/watch?v=OOb1eil4PCo&t=435s
 // Using code from the above whiteboard tutorial.
 
-    public WhiteBoardPanel(DataInputStream in, DataOutputStream out) throws RemoteException {
+    public WhiteBoardPanel(Socket socket, DataInputStream in, DataOutputStream out, RemoteWhiteBoard remoteWhiteBoard, boolean manager) throws RemoteException {
+        this.socket = socket;
         this.in = in;
         this.out = out;
+        this.remoteWhiteBoard = remoteWhiteBoard;
+        this.manager = manager;
 
         this.setSize(800, 600);
         setDoubleBuffered(false);
@@ -49,16 +60,18 @@ public class WhiteBoardPanel extends JPanel{
             @Override
             public void mouseDragged(MouseEvent e) {
 
-                if (graphics2D != null){
+                if (ShapeOrText) {
+                    if (graphics2D != null) {
 
-                    currentX = e.getX();
-                    currentY = e.getY();
-                    String shapeRecordJsonString = fillShape(shape, currentX - fillSize / 2, currentY - fillSize / 2, fillSize, fillSize);
-                    tempMouseMotionList.add(shapeRecordJsonString);
-                    repaint();
-                    oldX = currentX;
-                    oldY = currentY;
+                        currentX = e.getX();
+                        currentY = e.getY();
+                        String shapeRecordJsonString = fillShape(shape, currentX - fillSize / 2, currentY - fillSize / 2, fillSize, fillSize);
+                        tempMouseMotionList.add(shapeRecordJsonString);
+                        repaint();
+                        oldX = currentX;
+                        oldY = currentY;
 
+                    }
                 }
             }
         });
@@ -67,7 +80,47 @@ public class WhiteBoardPanel extends JPanel{
             @Override
             public void mousePressed(MouseEvent e) {
                 // Clear the temporary list when mouse is pressed
-                tempMouseMotionList.clear();
+
+                if (ShapeOrText) {
+                    tempMouseMotionList.clear();
+                    currentX = e.getX();
+                    currentY = e.getY();
+                    String shapeRecordJsonString = fillShape(shape, currentX - fillSize / 2, currentY - fillSize / 2, fillSize, fillSize);
+                    tempMouseMotionList.add(shapeRecordJsonString);
+                    repaint();
+                } else {
+
+                    JTextField textField = new JTextField(20);
+                    textField.setBounds(e.getX(), e.getY(), 200, 20);
+                    add(textField);
+                    textField.requestFocus();
+
+                    textField.addKeyListener(new KeyAdapter() {
+                        @Override
+                        public void keyPressed(KeyEvent ke) {
+
+                            if (ke.getKeyCode() == KeyEvent.VK_ENTER) {
+
+                                currentTextRecord =  new TextRecord(e.getX() , e.getY(), fontSize, fontType, textField.getText());
+                                JSONObject textJsonObject = currentTextRecord.toJsonObject();
+                                textJsonObject.put("type", "text");
+                                textJsonObject.put("action", "add");
+                                String textJsonString = textJsonObject.toString();
+                                try {
+                                    out.writeUTF(textJsonString);
+                                } catch (IOException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                                remove(textField);
+
+                                repaint();
+
+                            }
+                        }
+                    });
+
+                }
+                repaint();
             }
 
             @Override
@@ -100,6 +153,10 @@ public class WhiteBoardPanel extends JPanel{
         }
 
         g.drawImage(this.image, 0, 0, this);
+        currentTextRecord.draw(graphics2D);
+
+
+
     }
 
     public void clearImage(){
@@ -107,6 +164,10 @@ public class WhiteBoardPanel extends JPanel{
         this.graphics2D.fillRect(0, 0, 800, 600);
         this.graphics2D.setPaint(Color.BLACK);
         this.repaint();
+    }
+
+    public void setShapeOrText(boolean shapeOrText){
+        this.ShapeOrText = shapeOrText;
     }
 
 
@@ -201,12 +262,15 @@ public class WhiteBoardPanel extends JPanel{
 
 
     }
-
     public void setShape(String shape){
         this.shape = shape;
     }
-
-
+    public void setFontSize(int size){
+        this.fontSize = size;
+    }
+    public void setFontType(String fontType){
+        this.fontType = fontType;
+    }
     public String getShapeRecordJsonString(ShapeRecord shapeRecord) {
         try{
             JSONObject recordJsonObject = shapeRecord.toJsonObject();
@@ -223,29 +287,72 @@ public class WhiteBoardPanel extends JPanel{
 
     }
 
-    public void processReceivedMessage(String jsonString){
+    public void sendChatMessage(String chatMessage){
+        try{
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("action", "add");
+            jsonObject.put("type", "chat");
+            jsonObject.put("chatMessage", chatMessage);
+            this.out.writeUTF(jsonObject.toString());
+        } catch (Exception e){
+            System.out.println("Something wrong in sendChatMessage: " + e.toString());
+        }
+    }
+
+    public void processReceivedMessage(String bigJsonString){
         try{
 
-                JSONObject jsonObject = new JSONObject(jsonString);
+                JSONObject bigJsonObject = new JSONObject(bigJsonString);
+                System.out.println("Received message: " + bigJsonString);
+                if (bigJsonObject.has("data")) {
 
-                if (jsonObject.has("action")) {
-                    String action = jsonObject.getString("action");
-                    String type = jsonObject.getString("type");
-                    if (type.equals("shape")) {
-                        int x = jsonObject.getInt("x");
-                        int y = jsonObject.getInt("y");
-                        String shape = jsonObject.getString("shape");
-                        int size = jsonObject.getInt("size");
-                        this.fillShape(shape, x, y, size, size);
-                        this.repaint();
+                    JSONArray RecordStringList = bigJsonObject.getJSONArray("data");
+                    for (int i = 0; i < RecordStringList.length(); i++) {
+                        String jsonString = RecordStringList.getString(i);
+                        JSONObject jsonObject = new JSONObject(jsonString);
 
-                    } else if (type.equals("word")) {
+                        if (jsonObject.has("action")) {
+                            String action = jsonObject.getString("action");
+                            String type = jsonObject.getString("type");
+                            if (type.equals("shape")) {
+                                int x = jsonObject.getInt("x");
+                                int y = jsonObject.getInt("y");
+                                String shape = jsonObject.getString("shape");
+                                int size = jsonObject.getInt("size");
+                                this.fillShape(shape, x, y, size, size);
+                                this.repaint();
 
-                    } else if (type.equals("result")) {
+                            } else if (type.equals("word")) {
 
+                            } else if (type.equals("result")) {
+
+                            }
+                        } else {
+                            // ignore this message
+                        }
                     }
                 } else {
-                    // ignore this message
+                    if (bigJsonObject.has("type")){
+                        if (bigJsonObject.getString("type").equals("text")){
+                            String text = bigJsonObject.getString("text");
+                            int x = bigJsonObject.getInt("x");
+                            int y = bigJsonObject.getInt("y");
+                            int size = bigJsonObject.getInt("fontSize");
+                            String fontType = bigJsonObject.getString("fontType");
+                            TextRecord newTextRecord = new TextRecord(x, y, size, fontType, text);
+                            newTextRecord.draw(this.graphics2D);
+                            this.repaint();
+                        } else if (bigJsonObject.getString("type").equals("chat")){
+                            String chatMessage = bigJsonObject.getString("chatMessage");
+                            Document doc = this.remoteWhiteBoard.getChatHistoryPane().getDocument();
+                            doc.insertString(doc.getLength(), chatMessage + "\n", null);
+//                            this.remoteWhiteBoard.getChatHistoryPane().setText(chatMessage + "\n");
+//                            this.remoteWhiteBoard.getChatHistoryPane().repaint();
+                        } else if (bigJsonObject.getString(("type")).equals("kickout")){
+                            this.socket.close();
+
+                        }
+                    }
                 }
 
         } catch (Exception e){
@@ -275,7 +382,5 @@ public class WhiteBoardPanel extends JPanel{
             }
         }).start();
     }
-
-
 }
 
