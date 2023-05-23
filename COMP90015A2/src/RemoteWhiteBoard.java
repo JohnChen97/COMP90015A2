@@ -1,14 +1,10 @@
 import javax.swing.*;
 import javax.swing.text.Document;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 
 public class RemoteWhiteBoard{
 
@@ -21,22 +17,22 @@ public class RemoteWhiteBoard{
 
 
     private JFrame frame;
-    private WhiteBoardPanel whiteBoardPanel;
+    private WhiteBoardPanel managerWhiteBoardPanel;
     private JTextPane chatHistoryPane;
     private String username;
-    private boolean manager;
 
-    public RemoteWhiteBoard(Socket socket, DataInputStream in, DataOutputStream out, String username, boolean manager) throws RemoteException {
+
+    public RemoteWhiteBoard(Socket socket, DataInputStream in, DataOutputStream out, String username) throws RemoteException {
 
         this.socket = socket;
         this.in = in;
         this.out = out;
         this.username = username;
-        this.manager = manager;
+
 
         this.frame = new JFrame("Whiteboard");
-        whiteBoardPanel = new WhiteBoardPanel(this.socket, this.in, this.out, this, false);
-        this.frame.add(whiteBoardPanel);
+        managerWhiteBoardPanel = new WhiteBoardPanel(this.socket, this.in, this.out, this);
+        this.frame.add(managerWhiteBoardPanel);
         Button clearButton = new Button("Clear");
         Button redButton = new Button("Red");
         Button blueButton = new Button("Blue");
@@ -104,7 +100,7 @@ public class RemoteWhiteBoard{
 
         clearButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.clearImage();
+                managerWhiteBoardPanel.clearImage();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -112,7 +108,7 @@ public class RemoteWhiteBoard{
 
         redButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setColor(Color.RED);
+                managerWhiteBoardPanel.setColor(Color.RED);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -120,7 +116,7 @@ public class RemoteWhiteBoard{
 
         blueButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setColor(Color.BLUE);
+                managerWhiteBoardPanel.setColor(Color.BLUE);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -128,7 +124,7 @@ public class RemoteWhiteBoard{
 
         greenButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setColor(Color.GREEN);
+                managerWhiteBoardPanel.setColor(Color.GREEN);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -136,7 +132,7 @@ public class RemoteWhiteBoard{
 
         eraseButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setColor(Color.WHITE);
+                managerWhiteBoardPanel.setColor(Color.WHITE);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -144,7 +140,7 @@ public class RemoteWhiteBoard{
 
         confirmFillOvalSizeButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setFillSize(Integer.parseInt(fillOvalSizeField.getText()));
+                managerWhiteBoardPanel.setFillSize(Integer.parseInt(fillOvalSizeField.getText()));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -152,7 +148,7 @@ public class RemoteWhiteBoard{
 
         fillOvalButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShape("Oval");
+                managerWhiteBoardPanel.setShape("Oval");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -160,7 +156,7 @@ public class RemoteWhiteBoard{
 
         fillRectangleButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShape("Rectangle");
+                managerWhiteBoardPanel.setShape("Rectangle");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -168,7 +164,7 @@ public class RemoteWhiteBoard{
 
         fillTriangleButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShape("Triangle");
+                managerWhiteBoardPanel.setShape("Triangle");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -176,7 +172,7 @@ public class RemoteWhiteBoard{
 
         fillSquareButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShape("Square");
+                managerWhiteBoardPanel.setShape("Square");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -184,7 +180,7 @@ public class RemoteWhiteBoard{
 
         fillStarButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShape("Star");
+                managerWhiteBoardPanel.setShape("Star");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -192,7 +188,7 @@ public class RemoteWhiteBoard{
 
         addTextButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShape("Text");
+                managerWhiteBoardPanel.setShape("Text");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -200,7 +196,7 @@ public class RemoteWhiteBoard{
 
         fontJList.addListSelectionListener(e -> {
             try {
-                whiteBoardPanel.setFontType(fontList[fontJList.getSelectedIndex()]);
+                managerWhiteBoardPanel.setFontType(fontList[fontJList.getSelectedIndex()]);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -208,7 +204,7 @@ public class RemoteWhiteBoard{
 
         addShapeButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShapeOrText(true);
+                managerWhiteBoardPanel.setShapeOrText(true);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -216,7 +212,7 @@ public class RemoteWhiteBoard{
 
         addTextButton.addActionListener(e -> {
             try {
-                whiteBoardPanel.setShapeOrText(false);
+                managerWhiteBoardPanel.setShapeOrText(false);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -229,7 +225,7 @@ public class RemoteWhiteBoard{
                 Document doc = this.getChatHistoryPane().getDocument();
                 doc.insertString(doc.getLength(), message + "\n", null);
                 chatField.setText("");
-                whiteBoardPanel.sendChatMessage(message);
+                managerWhiteBoardPanel.sendChatMessage(message);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -240,27 +236,27 @@ public class RemoteWhiteBoard{
 
 
     public void setColor(Color color) throws RemoteException {
-        this.whiteBoardPanel .setColor(color);
+        this.managerWhiteBoardPanel.setColor(color);
     }
 
 
     public void draw(int x, int y) throws RemoteException {
-        this.whiteBoardPanel .draw(x, y);
+        this.managerWhiteBoardPanel.draw(x, y);
     }
 
 
     public void clearImage() throws RemoteException {
-        this.whiteBoardPanel .clearImage();
+        this.managerWhiteBoardPanel.clearImage();
     }
 
 
     public void erase(int x, int y) throws RemoteException {
-        this.whiteBoardPanel .erase(x, y);
+        this.managerWhiteBoardPanel.erase(x, y);
     }
 
 
     public void setFillSize(int fillOvalSize) throws RemoteException {
-        this.whiteBoardPanel .setFillSize(fillOvalSize);
+        this.managerWhiteBoardPanel.setFillSize(fillOvalSize);
     }
 
 

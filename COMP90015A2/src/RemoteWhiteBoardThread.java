@@ -7,6 +7,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 
@@ -20,6 +21,7 @@ public class RemoteWhiteBoardThread extends Thread {
     private Socket socket;
     private ArrayList<RemoteWhiteBoardThread> threads;
     private String username;
+
 
 
     public RemoteWhiteBoardThread(Socket socket, RemoteWhiteBoardMongoDB remoteWhiteBoardMongoDB, String collectionName, Canvas canvas, ArrayList<RemoteWhiteBoardThread> threads) throws IOException {
@@ -115,29 +117,79 @@ public class RemoteWhiteBoardThread extends Thread {
                                     jsonObjectToManager.put("type", "addClient");
                                     jsonObjectToManager.put("action", "add");
                                     jsonObjectToManager.put("username", username);
-                                    thread.getOut().writeUTF(jsonObjectToManager.toString());
+                                    try {
+                                        thread.getOut().writeUTF(jsonObjectToManager.toString());
+                                    } catch (SocketException e) {
+                                        System.out.println("Error !!! The socket in " + thread.username + " is closed");
+                                    }
                                 }
                             }
                         }
 
 
-                    } else if (type.equals("kickout")){
+                    }
+//                    else if (type.equals("kickout")){
+//                        String username = bigJsonObject.getString("username");
+//                        for (RemoteWhiteBoardThread thread : threads) {
+//                            if (thread.username.equals(username)) {
+//                                System.out.println("The username of this thread is " + thread.username);
+//                                System.out.println("Sending to " + thread.getSocket().getInetAddress());
+//                                this.canvas.removeClient(username);
+//                                thread.getOut().writeUTF(bigJsonString);
+//                                this.socket.close();
+//                                this.threads.remove(this);
+//                            }
+//                        }
+//
+//                    }
+                    else if (type.equals("kickout")){
+                        String username = bigJsonObject.getString("username");
+                        Iterator<RemoteWhiteBoardThread> iterator = threads.iterator();
+
+                        RemoteWhiteBoardThread targetThread = null;
+
+                        while(iterator.hasNext()) {
+                            RemoteWhiteBoardThread thread = iterator.next();
+                            if (thread.username.equals(username)) {
+                                System.out.println("The username of this thread is " + thread.username);
+                                System.out.println("Sending to " + thread.getSocket().getInetAddress());
+                                this.canvas.removeClient(username);
+                                thread.getOut().writeUTF(bigJsonString);
+                                thread.getSocket().close();
+
+                                targetThread = thread;
+                            }
+                        }
+                        threads.remove(targetThread);
+
+
+
+                    }
+                    else if (type.equals("permit")){
                         String username = bigJsonObject.getString("username");
                         for (RemoteWhiteBoardThread thread : threads) {
                             if (thread.username.equals(username)) {
                                 System.out.println("Sending to " + thread.getSocket().getInetAddress());
-                                this.canvas.removeClient(username);
                                 thread.getOut().writeUTF(bigJsonString);
-                                this.socket.close();
-                                this.threads.remove(this);
                             }
                         }
+                    } else if (type.equals("save")){
+                        String username = bigJsonObject.getString("username");
+                        this.remoteWhiteBoardMongoDB.saveJsonFileAsDoc("SavedImage" , bigJsonObject);
 
+                    } else if (type.equals("load")){
+                        String username = bigJsonObject.getString("username");
+                        String imageName = bigJsonObject.getString("imageName");
+                        JSONObject jsonObject = this.remoteWhiteBoardMongoDB.loadDocAsJsonFile("SavedImage", imageName);
+                        jsonObject.put("type", "load");
+                        this.out.writeUTF(jsonObject.toString());
                     }
 
                 }
 
             }
+            } catch (SocketException e){
+                e.printStackTrace();
             } catch(JSONException e){
                 e.printStackTrace();
             } catch(Exception e){
@@ -171,7 +223,7 @@ public class RemoteWhiteBoardThread extends Thread {
                 // Instead of reading from the client socket, retrieve message from queue
 
                 // Handle client's message
-                if (this.in.available() > 0) {
+                    System.out.println("Currently there are " + this.threads.size() + " threads.");
                     String userInputMessage = this.in.readUTF();
                     System.out.println("A client sent: " + userInputMessage);
                     this.handleIncomingJsonString(userInputMessage);
@@ -184,11 +236,13 @@ public class RemoteWhiteBoardThread extends Thread {
                             break;
                         }
                     }
-                } else {
-                    Thread.sleep(100); // If no data is available in the stream, sleep for a bit to prevent CPU overload.
-                }
+
+
             }
-        } catch (UTFDataFormatException e){
+        } catch (EOFException e){
+            System.out.println("EOFException: " + e.toString());
+        }
+        catch (UTFDataFormatException e){
             System.out.println("UTFDataFormatException: " + e.toString());
         } catch(SocketException e) {
             System.out.println("Socket closed.");
@@ -196,8 +250,6 @@ public class RemoteWhiteBoardThread extends Thread {
             e.printStackTrace();
         } catch (NullPointerException e){
             System.out.println("User input message is a null string.");
-        } catch (InterruptedException e) {
-            System.out.println("Thread was interrupted while waiting for a new message.");
         } finally {
             try {
                 this.socket.close();

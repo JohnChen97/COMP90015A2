@@ -99,9 +99,9 @@ public class RemoteWhiteBoardMongoDB {
         }
     }
 
-    public JSONObject loadDocAsJsonFile(String collectionName){
+    public JSONObject loadDocAsJsonFile(String collectionName, String imageName){
         try {
-            Document document = getCollection(collectionName).find().first();
+            Document document = getCollection(collectionName).find(new Document("imageName", imageName)).first();
             JSONObject jsonObject = new JSONObject(document.toJson());
             return jsonObject;
         } catch (Exception e) {
@@ -138,5 +138,7 @@ public class RemoteWhiteBoardMongoDB {
             return false;
         }
     }
+
+
 }
 

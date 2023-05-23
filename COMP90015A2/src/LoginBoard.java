@@ -55,35 +55,53 @@ public class LoginBoard {
 
 
 
-                    String username = usernameField.getText();
-                    String password = passwordField.getText();
-                    JSONObject UserPassword = new JSONObject();
-                    UserPassword.put("username", username);
-                    UserPassword.put("password", password);
-                    UserPassword.put("type", "UsernamePassword");
-                    UserPassword.put("action", "login");
-                    out.writeUTF(UserPassword.toString());
-                    out.flush();
-                    String response = in.readUTF();
-                    JSONObject responseJSON = new JSONObject(response);
-                    if (responseJSON.getBoolean("status")) {
-                        validUser = true;
-                        this.username = username;
-                        this.frame.setVisible(false);
-                        this.frame.dispose();
-                        if (manager) {
-                            generateManagerRemoteWhiteBoard();
+                        String username = usernameField.getText();
+                        String password = passwordField.getText();
+                        JSONObject UserPassword = new JSONObject();
+                        UserPassword.put("username", username);
+                        UserPassword.put("password", password);
+                        UserPassword.put("type", "UsernamePassword");
+                        UserPassword.put("action", "login");
+                        out.writeUTF(UserPassword.toString());
+                        out.flush();
+                        String response = in.readUTF();
+                        JSONObject responseJSON = new JSONObject(response);
+                        if (responseJSON.getBoolean("status")) {
+                            validUser = true;
+                            this.username = username;
+                            this.frame.setVisible(false);
+                            this.frame.dispose();
+                            if (manager) {
+                                System.out.println("Generate manager frame.");
+                                generateManagerRemoteWhiteBoard();
+                            } else {
+                                System.out.println("Generate not manager frame.");
+                                String permissionJsonString = in.readUTF();
+                                JSONObject permissionJsonObject = new JSONObject(permissionJsonString);
+                                System.out.println("Permission json string: " + permissionJsonString);
+                                if (permissionJsonObject.has("type")) {
+                                    if (permissionJsonObject.getString("type").equals("permit")) {
+                                        Boolean status = permissionJsonObject.getBoolean("status");
+                                        if (status) {
+                                            generateRemoteWhiteBoard();
+                                        } else {
+                                            this.frame.setVisible(false);
+                                            this.frame.dispose();
+                                            JOptionPane.showMessageDialog(null, "You are not permitted to join the whiteboard.");
+
+                                        }
+                                    }
+                                }
+                            }
+
                         } else {
-                            generateRemoteWhiteBoard();
+                            username = "";
+                            password = "";
+                            usernameField.setText("");
+                            passwordField.setText("");
+                            JOptionPane.showMessageDialog(null, "Please enter a valid username and password");
                         }
 
-                    } else {
-                        username = "";
-                        password = "";
-                        usernameField.setText("");
-                        passwordField.setText("");
-                        JOptionPane.showMessageDialog(null, "Please enter a valid username and password");
-                    }
 
 //
 
