@@ -168,10 +168,10 @@ public class RemoteWhiteBoardThread extends Thread {
                     else if (type.equals("permit")){
                         String username = bigJsonObject.getString("username");
                         for (RemoteWhiteBoardThread thread : threads) {
-                            if (thread.username.equals(username)) {
+                            //if (thread.username.equals(username)) {
                                 System.out.println("Sending to " + thread.getSocket().getInetAddress());
                                 thread.getOut().writeUTF(bigJsonString);
-                            }
+                            //}
                         }
                     } else if (type.equals("save")){
                         String username = bigJsonObject.getString("username");
@@ -182,7 +182,18 @@ public class RemoteWhiteBoardThread extends Thread {
                         String imageName = bigJsonObject.getString("imageName");
                         JSONObject jsonObject = this.remoteWhiteBoardMongoDB.loadDocAsJsonFile("SavedImage", imageName);
                         jsonObject.put("type", "load");
-                        this.out.writeUTF(jsonObject.toString());
+                        for (RemoteWhiteBoardThread thread : threads) {
+                            thread.getOut().writeUTF(jsonObject.toString());
+                        }
+
+                    } else if (type.equals("usernameList")){
+                        for (RemoteWhiteBoardThread thread : threads) {
+
+
+                            thread.getOut().writeUTF(bigJsonString);
+
+
+                        }
                     }
 
                 }

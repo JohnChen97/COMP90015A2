@@ -82,7 +82,8 @@ public class LoginBoard {
                                 if (permissionJsonObject.has("type")) {
                                     if (permissionJsonObject.getString("type").equals("permit")) {
                                         Boolean status = permissionJsonObject.getBoolean("status");
-                                        if (status) {
+                                        String receivedUsername = permissionJsonObject.getString("username");
+                                        if (status && receivedUsername.equals(username)) {
                                             generateRemoteWhiteBoard();
                                         } else {
                                             this.frame.setVisible(false);

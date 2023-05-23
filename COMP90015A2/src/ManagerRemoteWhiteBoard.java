@@ -6,8 +6,11 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.text.Document;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -17,6 +20,7 @@ import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 
 public class ManagerRemoteWhiteBoard {
@@ -40,6 +44,11 @@ public class ManagerRemoteWhiteBoard {
     private DefaultListModel<String> clientListModel;
     private JList<String> clientJList;
 
+    private DefaultListModel<String> colorListModel;
+    private JList<String> colorJList;
+    private DefaultListModel<String> shapeListModel;
+    private JList<String> shapeJList;
+
 
 
     public ManagerRemoteWhiteBoard(Socket socket, DataInputStream in, DataOutputStream out, String username) throws RemoteException {
@@ -54,160 +63,205 @@ public class ManagerRemoteWhiteBoard {
         this.username = username;
 
 
-        this.frame = new JFrame("Whiteboard");
-        this.frame.setSize(1500, 1500);
+//        this.frame = new JFrame("Whiteboard");
+//        this.frame.setSize(1500, 1500);
+//        managerWhiteBoardPanel = new ManagerWhiteBoardPanel(this.socket, this.in, this.out, this);
+//        this.frame.add(managerWhiteBoardPanel);
+//        Button clearButton = new Button("Clear");
+//        Button redButton = new Button("Red");
+//        Button blueButton = new Button("Blue");
+//        Button greenButton = new Button("Green");
+//        Button eraseButton = new Button("Erase");
+//        Panel buttonPanel = new Panel();
+//        buttonPanel.add(clearButton);
+//        buttonPanel.add(redButton);
+//        buttonPanel.add(blueButton);
+//        buttonPanel.add(greenButton);
+//        buttonPanel.add(eraseButton);
+//
+//        JTextField fillOvalSizeField = new JTextField(5);
+//        Button confirmFillOvalSizeButton = new Button("Confirm");
+//        Panel fillOvalSizePanel = new Panel();
+//        fillOvalSizePanel.add(fillOvalSizeField);
+//        fillOvalSizePanel.add(confirmFillOvalSizeButton);
+//        this.frame.add(fillOvalSizePanel, BorderLayout.WEST);
+//
+//        Button fillOvalButton = new Button("Oval");
+//        Button fillRectangleButton = new Button("Rectangle");
+//        Button fillTriangleButton = new Button("Triangle");
+//        Button fillSquareButton = new Button("Square");
+//        Button fillStarButton = new Button("Star");
+//        Panel fillShapePanel = new Panel();
+//        fillShapePanel.add(fillOvalButton);
+//        fillShapePanel.add(fillRectangleButton);
+//        fillShapePanel.add(fillTriangleButton);
+//        fillShapePanel.add(fillSquareButton);
+//        fillShapePanel.add(fillStarButton);
+//        this.frame.add(fillShapePanel, BorderLayout.NORTH);
+//
+//        Button addTextButton = new Button("Add Text");
+//        Button addShapeButton = new Button("Add Shape");
+//        String[] fontList = {"Arial", "Times New Roman", "Courier New", "Comic Sans MS", "Impact"};
+//        JList fontJList = new JList(fontList);
+//        fontJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+//        JScrollPane fontJScrollPane = new JScrollPane(fontJList);
+//        Panel TextPanel = new Panel();
+//        TextPanel.add(addTextButton);
+//        TextPanel.add(fontJScrollPane);
+//        TextPanel.add(addShapeButton);
+//        this.frame.add(TextPanel, BorderLayout.EAST);
+//
+//        TextField chatField = new TextField(20);
+//        chatHistoryPane = new JTextPane();
+//        chatHistoryPane.setEditable(false);
+//        JScrollPane chatHistoryField = new JScrollPane(chatHistoryPane);
+//        chatHistoryField.setPreferredSize(new Dimension(200, 200));
+//        Button sendButton = new Button("Send");
+//        Panel chatPanel = new Panel();
+//        chatPanel.add(chatField);
+//        chatPanel.add(sendButton);
+//        chatPanel.add(chatHistoryField);
+//        this.frame.add(chatPanel, BorderLayout.NORTH);
+//
+//        Button  saveImageButton = new Button("Save Image on MongoDB");
+//        this.frame.add(saveImageButton, BorderLayout.PAGE_START);
+//
+//        Button loadImageButton = new Button("Load Image from MongoDB");
+//        this.frame.add(loadImageButton, BorderLayout.PAGE_END);
+//
+//        Button saveImageToLocal = new Button("Save Image to Local");
+//        this.frame.add(saveImageToLocal, BorderLayout.PAGE_END);
+//
+//        this.frame.add(buttonPanel, BorderLayout.SOUTH);
+//        this.frame.pack();
+//        this.frame.setVisible(true);
+//        this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//        this.frame.setLocationRelativeTo(null);
+//        this.frame.setVisible(true);
+//
+//        clientListModel = new DefaultListModel<>();
+//        clientJList = new JList<>(clientListModel);
+//        JScrollPane clientScrollPane = new JScrollPane(clientJList);
+//        clientScrollPane.setPreferredSize(new Dimension(250, 80));
+//        this.frame.add(clientScrollPane, BorderLayout.EAST);
+
+        frame = new JFrame("Whiteboard");
+        frame.setSize(1500, 1500);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLocationRelativeTo(null);
+
         managerWhiteBoardPanel = new ManagerWhiteBoardPanel(this.socket, this.in, this.out, this);
-        this.frame.add(managerWhiteBoardPanel);
-        Button clearButton = new Button("Clear");
-        Button redButton = new Button("Red");
-        Button blueButton = new Button("Blue");
-        Button greenButton = new Button("Green");
-        Button eraseButton = new Button("Erase");
-        Panel buttonPanel = new Panel();
-        buttonPanel.add(clearButton);
-        buttonPanel.add(redButton);
-        buttonPanel.add(blueButton);
-        buttonPanel.add(greenButton);
-        buttonPanel.add(eraseButton);
+        frame.add(managerWhiteBoardPanel, BorderLayout.CENTER);
 
         JTextField fillOvalSizeField = new JTextField(5);
+        JLabel fillOvalSizeLabel = new JLabel("Enter Size");
+        fillOvalSizeLabel.setLabelFor(fillOvalSizeField);
         Button confirmFillOvalSizeButton = new Button("Confirm");
-        Panel fillOvalSizePanel = new Panel();
-        fillOvalSizePanel.add(fillOvalSizeField);
-        fillOvalSizePanel.add(confirmFillOvalSizeButton);
-        this.frame.add(fillOvalSizePanel, BorderLayout.WEST);
 
-        Button fillOvalButton = new Button("Oval");
-        Button fillRectangleButton = new Button("Rectangle");
-        Button fillTriangleButton = new Button("Triangle");
-        Button fillSquareButton = new Button("Square");
-        Button fillStarButton = new Button("Star");
-        Panel fillShapePanel = new Panel();
-        fillShapePanel.add(fillOvalButton);
-        fillShapePanel.add(fillRectangleButton);
-        fillShapePanel.add(fillTriangleButton);
-        fillShapePanel.add(fillSquareButton);
-        fillShapePanel.add(fillStarButton);
-        this.frame.add(fillShapePanel, BorderLayout.NORTH);
 
+        // Fill Shape Panel
         Button addTextButton = new Button("Add Text");
         Button addShapeButton = new Button("Add Shape");
+        shapeListModel = new DefaultListModel<>();
+        String[] shapes = {"Oval", "Rectangle", "Triangle", "Square", "Star", "Circle", "Line"};
+        for (String shape : shapes) {
+            shapeListModel.addElement(shape);
+        }
+        shapeJList = new JList<>(shapeListModel);
+        JScrollPane shapeScrollPane = new JScrollPane(shapeJList);
+        shapeScrollPane.setPreferredSize(new Dimension(250, 100));
+        JPanel shapePanel = createButtonPanel();
+        shapePanel.add(addTextButton, BorderLayout.SOUTH);
+        shapePanel.add(addShapeButton, BorderLayout.SOUTH);
+        shapePanel.add(shapeScrollPane, BorderLayout.CENTER);
+        shapePanel.add(fillOvalSizeField, BorderLayout.NORTH);
+        shapePanel.add(fillOvalSizeLabel, BorderLayout.NORTH);
+        shapePanel.add(confirmFillOvalSizeButton, BorderLayout.NORTH);
+        shapePanel.setPreferredSize(new Dimension(260, 100));
+        shapePanel.setBorder(BorderFactory.createTitledBorder("Shape"));
+        frame.add(shapePanel, BorderLayout.WEST);
+
+        colorListModel = new DefaultListModel<>();
+        String[] colors = {"red", "blue", "green", "black", "white", "yellow", "pink", "orange", "gray", "cyan", "magenta", "lightGray", "darkGray", "darkRed", "darkGreen", "darkBlue"};
+        for (String color : colors) {
+            colorListModel.addElement(color);
+        }
+        colorJList = new JList<>(colorListModel);
+        JScrollPane colorScrollPane = new JScrollPane(colorJList);
+        colorScrollPane.setPreferredSize(new Dimension(250, 80));
+        shapePanel.add(colorScrollPane, BorderLayout.SOUTH);
+
+
+        // Text Panel
+
         String[] fontList = {"Arial", "Times New Roman", "Courier New", "Comic Sans MS", "Impact"};
-        JList fontJList = new JList(fontList);
+        JList<String> fontJList = new JList<>(fontList);
         fontJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JScrollPane fontJScrollPane = new JScrollPane(fontJList);
-        Panel TextPanel = new Panel();
-        TextPanel.add(addTextButton);
-        TextPanel.add(fontJScrollPane);
-        TextPanel.add(addShapeButton);
-        this.frame.add(TextPanel, BorderLayout.EAST);
+        JPanel textPanel = createButtonPanel();
 
-        TextField chatField = new TextField(20);
+        textPanel.add(fontJScrollPane);
+
+        frame.add(textPanel, BorderLayout.EAST);
+
+        // Chat Panel
+        JTextField chatField = new JTextField(20);
         chatHistoryPane = new JTextPane();
         chatHistoryPane.setEditable(false);
         JScrollPane chatHistoryField = new JScrollPane(chatHistoryPane);
         chatHistoryField.setPreferredSize(new Dimension(200, 200));
         Button sendButton = new Button("Send");
-        Panel chatPanel = new Panel();
+        JPanel chatPanel = createButtonPanel();
         chatPanel.add(chatField);
         chatPanel.add(sendButton);
         chatPanel.add(chatHistoryField);
-        this.frame.add(chatPanel, BorderLayout.NORTH);
+        frame.add(chatPanel, BorderLayout.NORTH);
 
-        Button  saveImageButton = new Button("Save Image on MongoDB");
-        this.frame.add(saveImageButton, BorderLayout.PAGE_START);
-
+        // Save Image Panel
+        Button saveImageButton = new Button("Save Image on MongoDB");
         Button loadImageButton = new Button("Load Image from MongoDB");
-        this.frame.add(loadImageButton, BorderLayout.PAGE_END);
-
         Button saveImageToLocal = new Button("Save Image to Local");
-        this.frame.add(saveImageToLocal, BorderLayout.PAGE_END);
-
-        this.frame.add(buttonPanel, BorderLayout.SOUTH);
-        this.frame.pack();
-        this.frame.setVisible(true);
-        this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.frame.setLocationRelativeTo(null);
-        this.frame.setVisible(true);
-
+        JPanel imagePanel = createButtonPanel();
+        imagePanel.add(saveImageButton);
+        imagePanel.add(loadImageButton);
+        imagePanel.add(saveImageToLocal);
+        frame.add(imagePanel, BorderLayout.PAGE_END);
         clientListModel = new DefaultListModel<>();
         clientJList = new JList<>(clientListModel);
         JScrollPane clientScrollPane = new JScrollPane(clientJList);
-        clientScrollPane.setPreferredSize(new Dimension(250, 80));
-        this.frame.add(clientScrollPane, BorderLayout.EAST);
-
-//        this.clientManagePanel = new JPanel();
-//        this.clientList = new ArrayList<String>();
-//        JList<String> clientJList = new JList<String>(clientList.toArray(new String[clientList.size()]));
-//        clientJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-//        clientJList.setLayoutOrientation(JList.VERTICAL);
-//        clientJList.setVisibleRowCount(-1);
-//        JScrollPane clientJScrollPane = new JScrollPane(clientJList);
-//        clientJScrollPane.setPreferredSize(new Dimension(250, 80));
-//        this.clientManagePanel.add(clientJScrollPane);
-//        this.getFrame().add(this.clientManagePanel, BorderLayout.WEST);
+        clientScrollPane.setPreferredSize(new Dimension(200, 60));
+        clientScrollPane.setBorder(BorderFactory.createTitledBorder("ClientList"));
+        frame.add(clientScrollPane, BorderLayout.EAST);
 
 
-//        clientJList.addListSelectionListener(new ListSelectionListener() {
-//            public void valueChanged(ListSelectionEvent e) {
-//                if (e.getValueIsAdjusting() == false) {
-//                    String selectedClient = clientJList.getSelectedValue();
-//                    if (selectedClient != null) {
-//                        System.out.println("Selected client: " + selectedClient);
-//                        try {
-//                            JSONObject jsonObject = new JSONObject();
-//                            jsonObject.put("username", selectedClient);
-//                            jsonObject.put("type", "kickout");
-//                            jsonObject.put("action", "remove");
-//                            getOut().writeUTF("kickout");
-//                        } catch (IOException ex) {
-//                            throw new RuntimeException(ex);
-//                        }
-//
-//                    }
-//
-//
-//                }
-//            }
-//        });
+        frame.pack();
+        frame.setVisible(true);
 
-        clearButton.addActionListener(e -> {
+        colorJList.addListSelectionListener(e -> {
             try {
-                managerWhiteBoardPanel.clearImage();
+                java.lang.reflect.Field field = Class.forName("java.awt.Color").getField(colorJList.getSelectedValue());
+                Color color = (Color) field.get(null);
+                managerWhiteBoardPanel.setColor(color);
             } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        redButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setColor(Color.RED);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        blueButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setColor(Color.BLUE);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        greenButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setColor(Color.GREEN);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        eraseButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setColor(Color.WHITE);
-            } catch (Exception ex) {
-                ex.printStackTrace();
+                if (colorJList.getSelectedValue() == "darkRed"){
+                    try {
+                        managerWhiteBoardPanel.setColor(new Color(204, 0, 0));
+                    } catch (RemoteException exc) {
+                        throw new RuntimeException(exc);
+                    }
+                } else if (colorJList.getSelectedValue() == "darkBlue") {
+                    try {
+                        managerWhiteBoardPanel.setColor(new Color(0, 0, 204));
+                    } catch (RemoteException exc) {
+                        throw new RuntimeException(exc);
+                    }
+                } else if (colorJList.getSelectedValue() == "darkGreen"){
+                    try {
+                        managerWhiteBoardPanel.setColor(new Color(0, 204, 0));
+                    } catch (RemoteException exc) {
+                        throw new RuntimeException(exc);
+                    }
+                }
             }
         });
 
@@ -219,41 +273,9 @@ public class ManagerRemoteWhiteBoard {
             }
         });
 
-        fillOvalButton.addActionListener(e -> {
+        shapeJList.addListSelectionListener(e -> {
             try {
-                managerWhiteBoardPanel.setShape("Oval");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        fillRectangleButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setShape("Rectangle");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        fillTriangleButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setShape("Triangle");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        fillSquareButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setShape("Square");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        fillStarButton.addActionListener(e -> {
-            try {
-                managerWhiteBoardPanel.setShape("Star");
+                managerWhiteBoardPanel.setShape(shapeJList.getSelectedValue());
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -379,6 +401,18 @@ public class ManagerRemoteWhiteBoard {
                             selectedClientJsonObject.put("username", selectedClientName);
                             out.writeUTF(selectedClientJsonObject.toString());
                             managerWhiteBoardPanel.removeClient(selectedClientName);
+
+                            JSONObject jsonObject = new JSONObject();
+                            jsonObject.put("action", "add");
+                            jsonObject.put("type", "usernameList");
+                            jsonObject.put("username", username);
+                            String[] usernameList = new String[clientListModel.size() + 1];
+                            usernameList[0] = username;
+                            for (int i = 1; i < clientListModel.size(); i++){
+                                usernameList[i] = clientListModel.get(i);
+                            }
+                            jsonObject.put("usernameList", usernameList);
+                            out.writeUTF(jsonObject.toString());
                         }
                     }
                 } catch (IOException event){
@@ -439,7 +473,12 @@ public class ManagerRemoteWhiteBoard {
     }
 
     public void saveImageToMongoDB(String imageName) throws IOException {
-        Image image = managerWhiteBoardPanel.getImage();
+
+        BufferedImage image = new BufferedImage(this.managerWhiteBoardPanel.getWidth(), this.managerWhiteBoardPanel.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics2D = image.createGraphics();
+        this.managerWhiteBoardPanel.paint(graphics2D);
+
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write((RenderedImage) image, "png", baos);
         byte[] imageBytes = baos.toByteArray();
@@ -469,6 +508,19 @@ public class ManagerRemoteWhiteBoard {
 
     public DefaultListModel<String> getClientListModel(){
         return this.clientListModel;
+    }
+
+    // Those are JavaSwing functions.
+
+
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new FlowLayout());
+        return panel;
+    }
+
+    public String getUsername() {
+        return username;
     }
 
 

@@ -36,12 +36,15 @@ public class JoinRequestNotification {
 
         acceptButton.addActionListener(e -> {
             try {
-                this.clientListModel.addElement(username);
+                //this.clientListModel.addElement(username);
                 JSONObject joinRequest = new JSONObject();
                 joinRequest.put("type", "permit");
                 joinRequest.put("status", true);
                 joinRequest.put("action", "add");
                 joinRequest.put("username", username);
+                String [] usernameList = new String[clientListModel.size()];
+                for (int i = 0; i < clientListModel.size(); i++) {usernameList[i] = clientListModel.get(i);}
+                joinRequest.put("usernameList", usernameList);
                 out.writeUTF(joinRequest.toString());
                 this.frame.dispose();
             } catch (Exception exception) {

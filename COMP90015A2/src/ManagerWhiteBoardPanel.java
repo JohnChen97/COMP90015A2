@@ -237,7 +237,7 @@ public class ManagerWhiteBoardPanel extends JPanel{
             this.graphics2D.fillOval(x, y, this.fillSize, this.fillSize);
             //this.repaint(x, y, this.fillOvalSize, this.fillOvalSize);
             this.repaint();
-            this.graphics2D.setPaint(Color.BLACK);
+
         }
     }
 
@@ -299,6 +299,16 @@ public class ManagerWhiteBoardPanel extends JPanel{
             Polygon star = new Polygon(xPoints, yPoints, 6);
             graphics2D.fillPolygon(star);
             ShapeRecord shapeRecord = new ShapeRecord(x, y, oldX, oldY, "Star", this.graphics2D.getColor(), this.fillSize);
+            String jsonString = this.getShapeRecordJsonString(shapeRecord);
+            return jsonString;
+        } else if (shape.equals("Circle")){
+            this.graphics2D.drawOval(x, y, oldX, oldY);
+            ShapeRecord shapeRecord = new ShapeRecord(x, y, oldX, oldY, "Circle", this.graphics2D.getColor(), this.fillSize);
+            String jsonString = this.getShapeRecordJsonString(shapeRecord);
+            return jsonString;
+        } else if(shape.equals("Line")){
+            this.graphics2D.drawLine(x, y, currentX, currentY);
+            ShapeRecord shapeRecord = new ShapeRecord(x, y, oldX, oldY, "Line", this.graphics2D.getColor(), this.fillSize);
             String jsonString = this.getShapeRecordJsonString(shapeRecord);
             return jsonString;
         }
@@ -412,11 +422,33 @@ public class ManagerWhiteBoardPanel extends JPanel{
                             InputStream inputStream = new ByteArrayInputStream(imageData);
                             BufferedImage bufferedImage = ImageIO.read(inputStream);
                             Image newImage = bufferedImage.getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT);
-                            this.setImage(newImage);
+
+                            // Assign the loaded image to the graphics2D object
+                            this.graphics2D.setBackground(new Color(0, 0, 0, 0));
+                            this.graphics2D.clearRect(0, 0, imageWidth, imageHeight);
+                            this.graphics2D.drawImage(newImage, 0, 0, null);
+
                             repaint();
 
                         } catch (IOException e){
                             e.printStackTrace();
+                        }
+                    } else if (bigJsonObject.getString("type").equals("permit")){
+                        if (bigJsonObject.getBoolean("status")){
+                            String username = bigJsonObject.getString("username");
+                            this.managerRemoteWhiteBoard.getClientListModel().addElement(username);
+
+                            JSONObject jsonObject = new JSONObject();
+                            jsonObject.put("action", "add");
+                            jsonObject.put("type", "usernameList");
+                            jsonObject.put("username", username);
+                            String[] usernameList = new String[this.managerRemoteWhiteBoard.getClientListModel().size() + 1];
+                            usernameList[0] = this.managerRemoteWhiteBoard.getUsername();
+                            for (int i = 1; i < this.managerRemoteWhiteBoard.getClientListModel().size(); i++){
+                                usernameList[i] = this.managerRemoteWhiteBoard.getClientListModel().get(i);
+                            }
+                            jsonObject.put("usernameList", usernameList);
+                            this.out.writeUTF(jsonObject.toString());
                         }
                     }
                 }
@@ -502,6 +534,8 @@ public class ManagerWhiteBoardPanel extends JPanel{
             System.out.println("Something wrong in saveImage: " + e.toString());
         }
     }
+
+
 
 
 }

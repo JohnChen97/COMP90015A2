@@ -1,19 +1,19 @@
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.rmi.RemoteException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 
 public class WhiteBoardPanel extends JPanel{
     private Socket socket;
@@ -23,6 +23,8 @@ public class WhiteBoardPanel extends JPanel{
 
     private Graphics2D graphics2D;
     private Image image;;
+    private int imageWidth = 800;
+    private int imageHeight = 600;
     private int currentX, currentY, oldX, oldY;
 
     private int fillSize  = 5;
@@ -253,6 +255,16 @@ public class WhiteBoardPanel extends JPanel{
             ShapeRecord shapeRecord = new ShapeRecord(x, y, oldX, oldY, "Star", this.graphics2D.getColor(), this.fillSize);
             String jsonString = this.getShapeRecordJsonString(shapeRecord);
             return jsonString;
+        } else if (shape.equals("Circle")){
+            this.graphics2D.drawOval(x, y, oldX, oldY);
+            ShapeRecord shapeRecord = new ShapeRecord(x, y, oldX, oldY, "Circle", this.graphics2D.getColor(), this.fillSize);
+            String jsonString = this.getShapeRecordJsonString(shapeRecord);
+            return jsonString;
+        } else if(shape.equals("Line")){
+            this.graphics2D.drawLine(x, y, currentX, currentY);
+            ShapeRecord shapeRecord = new ShapeRecord(x, y, oldX, oldY, "Line", this.graphics2D.getColor(), this.fillSize);
+            String jsonString = this.getShapeRecordJsonString(shapeRecord);
+            return jsonString;
         }
 
             this.graphics2D.fillOval(x, y, oldX, oldY);
@@ -354,6 +366,33 @@ public class WhiteBoardPanel extends JPanel{
                             this.remoteWhiteBoard.getFrame().dispose();
                             this.socket.close();
 
+                        }  else if (bigJsonObject.getString("type").equals("load")){
+                            try {
+                                String image = bigJsonObject.getString("image");
+                                byte[] imageData = Base64.getDecoder().decode(image);
+                                InputStream inputStream = new ByteArrayInputStream(imageData);
+                                BufferedImage bufferedImage = ImageIO.read(inputStream);
+                                Image newImage = bufferedImage.getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT);
+                                this.graphics2D.setBackground(new Color(0, 0, 0, 0));
+                                this.graphics2D.clearRect(0, 0, imageWidth, imageHeight);
+                                this.graphics2D.drawImage(newImage, 0, 0, null);
+
+                                repaint();
+
+                            } catch (IOException e){
+                                e.printStackTrace();
+                            }
+                        } else if (bigJsonObject.getString("type").equals("usernameList")){
+
+
+                                JSONArray usernameList = bigJsonObject.getJSONArray("usernameList");
+                                this.remoteWhiteBoard.getClientListModel().clear();
+                                for (int i = 0; i < usernameList.length(); i++) {
+                                    if (!usernameList.getString(i).equals(this.remoteWhiteBoard.getUsername())){
+                                        this.remoteWhiteBoard.getClientListModel().addElement(usernameList.getString(i));
+                                    }
+                                }
+
                         }
                     }
                 }
@@ -384,6 +423,10 @@ public class WhiteBoardPanel extends JPanel{
                 }
             }
         }).start();
+    }
+
+    public void setImage(Image image){
+        this.image = image;
     }
 }
 
